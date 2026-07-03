@@ -2,126 +2,87 @@
 .stack 100h
 
 .data
-    a db 20, 0, 20 dup('$')
-    box db 0
-    box1 db 0
-    com1 db 0
-    com2 db 0
-    drv db 0           
-    Flag db 0
-    msg1 db 'Driver 1$'
-    msg2 db 'Driver 2$'
-    err_msg db 'none$'
-    
-    ; Данные для файла
-    filename db 'file.txt', 0
-    buffer db 0, 0, 0   ; место для Flag, drv, box
+    cmd db 0, 20, 0 dup('$')
+    a db '0'
+    b db '0'
+    x db '0'
+    filename db 'save.txt', 0
     handle dw ?
 
 .code
-sp1:
-    mov ax, @data
-    mov ds, ax
+s:
+    mov ah, 01h
+    int 21h
+    mov [cmd], al
 
+    cmp [cmd], '1'
+    je  driver1
+
+    cmp [cmd], '2'
+    je  driver2
+
+    cmp [cmd], '3'
+    je  sim
+
+    cmp [cmd], '4'
+    je  sim1
+
+    cmp [cmd], '5'
+    je  brick
+
+    jmp s
+
+driver1:
     mov ah, 01h
     int 21h
     mov [a], al
-
-    cmp [a], '1'
-    je  driver
-
-    cmp [a], '2'
-    je  driver2
-
-    cmp [a], '3'
-    je  read
-
-    cmp [a], '4'
-    je  com
-
-    cmp [a], '5'
-    je  flag
-
-    cmp [a], '6'        ; ← добавлена команда export
-    je  export
-
-    mov ah, 09h
-    mov dx, offset err_msg
-    int 21h
-    jmp sp1
-
-driver:
-    mov ah, 01h
-    int 21h
-    mov [box], al
-    mov ax, [box]
-    jmp sp1
+    jmp s
 
 driver2:
     mov ah, 01h
     int 21h
-    mov [box1], al
-    mov bx, [box1]
-    jmp sp1
+    mov [b], al
+    jmp s
 
-read:
-    mov bx, @data
-    jmp sp1
-
-com:
-    mov ah, 01h
-    int 21h
-    mov [com1], al
-
-    mov ah, 01h
-    int 21h
-    mov [com2], al
-
-    mov al, [com1]
-    mov bl, [com2]
+sim:
+    ; Сравнение a и b
+    mov al, [a]
+    mov bl, [b]
     cmp al, bl
-
     je  equal
-    mov [drv], 0     
-    jmp sp1
-
+    mov [x], '0'
+    jmp s
 equal:
-    mov [drv], 1        
-    jmp sp1
+    mov [x], '1'
+    jmp s
 
-flag:
-    mov ax, @data       
-    mov [Flag], al        
-    jmp sp1
+sim1:
+    ; Сложение a + b (как символы)
+    mov al, [a]
+    add al, [b]
+    sub al, '0'
+    mov [x], al
+    jmp s
 
-export:
-    ; Копируем данные в буфер
-    mov al, [Flag]
-    mov [buffer], al
-    mov al, [drv]
-    mov [buffer + 1], al
-    mov al, [box]
-    mov [buffer + 2], al
-
-    ; Создаём файл
+brick:
+    ; Сохраняем данные в файл
     mov ah, 3Ch
     mov cx, 0
     mov dx, offset filename
     int 21h
     mov [handle], ax
 
-    ; Записываем в файл
+    ; Записываем данные
     mov ah, 40h
     mov bx, [handle]
     mov cx, 3
-    mov dx, offset buffer
+    mov dx, offset a
     int 21h
 
-    ; Закрываем файл
     mov ah, 3Eh
     mov bx, [handle]
     int 21h
 
-    jmp sp1
+    jmp s
 
-end sp1
+end s
