@@ -8,7 +8,10 @@
     a3 db '1'
     a4 db '0'
     box db '0'
-    msg_ok db 'Тест завершён!$'
+    msg_ok db '[ok]$'
+    filename db 'save.dat', 0
+    handle dw ?
+    buffer db 4 dup('$')
 
 .code
 start:
@@ -31,6 +34,12 @@ A:
 
     cmp [cmd], '4'
     je  driver4
+
+    cmp [cmd], '5'
+    je  export_data
+
+    cmp [cmd], '6'
+    je  import_data
 
     cmp [cmd], 't'
     je  test
@@ -84,25 +93,81 @@ driver4:
     int 21h
     jmp A
 
+; --- export: сохранение данных в файл ---
+export_data:
+    ; Собираем данные в буфер
+    mov al, [a1]
+    mov [buffer], al
+    mov al, [a2]
+    mov [buffer+1], al
+    mov al, [a3]
+    mov [buffer+2], al
+    mov al, [a4]
+    mov [buffer+3], al
+
+    ; Создаём файл
+    mov ah, 3Ch
+    mov cx, 0
+    mov dx, offset filename
+    int 21h
+    mov [handle], ax
+
+    ; Записываем данные
+    mov ah, 40h
+    mov bx, [handle]
+    mov cx, 4
+    mov dx, offset buffer
+    int 21h
+
+    ; Закрываем файл
+    mov ah, 3Eh
+    mov bx, [handle]
+    int 21h
+
+    jmp A
+
+; --- import: загрузка данных из файла ---
+import_data:
+    ; Открываем файл
+    mov ah, 3Dh
+    mov al, 0
+    mov dx, offset filename
+    int 21h
+    mov [handle], ax
+
+    ; Читаем данные
+    mov ah, 3Fh
+    mov bx, [handle]
+    mov cx, 4
+    mov dx, offset buffer
+    int 21h
+
+    ; Закрываем файл
+    mov ah, 3Eh
+    mov bx, [handle]
+    int 21h
+
+    ; Загружаем данные из буфера в переменные
+    mov al, [buffer]
+    mov [a1], al
+    mov al, [buffer+1]
+    mov [a2], al
+    mov al, [buffer+2]
+    mov [a3], al
+    mov al, [buffer+3]
+    mov [a4], al
+
+    jmp A
+
 ; --- test: запуск всех команд по очереди ---
 test:
-    ; Шаг 1: запускаем driver1 (ввод)
     call driver1
-
-    ; Шаг 2: запускаем driver2 (графика)
     call driver2
-
-    ; Шаг 3: запускаем driver3 (звук)
     call driver3
-
-    ; Шаг 4: запускаем driver4 (вывод)
     call driver4
-
-    ; Шаг 5: выводим сообщение
     mov ah, 09h
     mov dx, offset msg_ok
     int 21h
-
     jmp A
 
 end start
