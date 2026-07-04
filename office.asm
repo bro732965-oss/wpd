@@ -3,14 +3,18 @@
 
 .data
     cmd db 0, 20, 0 dup('$')
-    a db '0'
-    b db '0'
-    x db '0'
-    filename db 'save.txt', 0
-    handle dw ?
+    a1 db '0'
+    a2 db '0'
+    a3 db '1'
+    a4 db '0'
+    box db '0'
 
 .code
-s:
+start:
+    mov ax, @data
+    mov ds, ax
+
+A:
     mov ah, 01h
     int 21h
     mov [cmd], al
@@ -22,67 +26,80 @@ s:
     je  driver2
 
     cmp [cmd], '3'
-    je  sim
+    je  driver3
 
     cmp [cmd], '4'
-    je  sim1
+    je  driver4
 
-    cmp [cmd], '5'
-    je  brick
+    cmp [cmd], 't'
+    je  s
 
-    jmp s
+    jmp A
 
+; --- driver1: ввод данных ---
 driver1:
     mov ah, 01h
     int 21h
-    mov [a], al
-    jmp s
+    mov [a1], al
+    jmp A
 
+; --- driver2: графика (синий квадрат) ---
 driver2:
-    mov ah, 01h
+    ; Включаем графику
+    mov ax, 0x0013
+    int 0x10
+
+    ; Настраиваем видеопамять
+    mov ax, 0xA000
+    mov es, ax
+
+    ; Рисуем квадрат
+    mov di, 0
+    mov cx, 2500
+    mov al, 1
+    rep stosb
+
+    ; Ждём клавишу
+    mov ah, 0x00
+    int 0x16
+
+    jmp A
+
+; --- driver3: звук (beep) ---
+driver3:
+    mov al, 0B6h
+    out 43h, al
+
+    mov ax, 4560       ; частота 440 Гц
+    out 42h, al
+    mov al, ah
+    out 42h, al
+
+    in al, 61h
+    or al, 00000011b
+    out 61h, al
+
+    ; Задержка
+    mov cx, 1000
+delay:
+    loop delay
+
+    ; Выключаем звук
+    in al, 61h
+    and al, 11111100b
+    out 61h, al
+
+    jmp A
+
+; --- driver4: вывод ---
+driver4:
+    mov ah, 09h
+    mov dx, offset a1
     int 21h
-    mov [b], al
-    jmp s
+    jmp A
 
-sim:
-    ; Сравнение a и b
-    mov al, [a]
-    mov bl, [b]
-    cmp al, bl
-    je  equal
-    mov [x], '0'
-    jmp s
-equal:
-    mov [x], '1'
-    jmp s
+; --- s: тест (пока пустой) ---
+s:
+    jmp A
 
-sim1:
-    ; Сложение a + b (как символы)
-    mov al, [a]
-    add al, [b]
-    sub al, '0'
-    mov [x], al
-    jmp s
-
-brick:
-    ; Сохраняем данные в файл
-    mov ah, 3Ch
-    mov cx, 0
-    mov dx, offset filename
-    int 21h
-    mov [handle], ax
-
-    ; Записываем данные
-    mov ah, 40h
-    mov bx, [handle]
-    mov cx, 3
-    mov dx, offset a
-    int 21h
-
-    mov ah, 3Eh
-    mov bx, [handle]
-    int 21h
-
-    jmp s
-
-end s
+end start
