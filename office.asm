@@ -7,6 +7,14 @@
     b db '0'
     x db '0'
     el db '0'
+    asd db '0'
+    asd1 db '0'
+    asd2 db '0'
+    asd3 db '0'
+    asd4 db '0'
+    ask db '0'
+    filename db 'data.txt', 0
+    handle dw ?
 
 .code
 S:
@@ -25,6 +33,9 @@ S:
 
     cmp [cmd], '3'
     je  compare
+
+    cmp [cmd], '4'
+    je  test_menu
 
     jmp S
 
@@ -112,6 +123,92 @@ B:
     mov ah, 09h
     mov dx, offset b
     int 21h
+    jmp S
+
+; --- Меню работы с файлами ---
+test_menu:
+    mov ah, 01h
+    int 21h
+    mov [ask], al
+
+    cmp [ask], '0'
+    je  file_write
+
+    cmp [ask], '1'
+    je  file_read
+
+    cmp [ask], '2'
+    je  file_open
+
+    jmp S
+
+; --- Запись в файл ---
+file_write:
+    mov ah, 01h
+    int 21h
+    mov [asd], al          ; данные
+
+    mov ah, 01h
+    int 21h
+    mov [asd1], al         ; длина
+
+    mov ah, 3Ch
+    mov cx, 0
+    mov dx, offset filename
+    int 21h
+    mov [handle], ax
+
+    mov ah, 40h
+    mov bx, [handle]
+    mov cl, [asd1]
+    mov ch, 0
+    mov dx, offset asd
+    int 21h
+
+    mov ah, 3Eh
+    mov bx, [handle]
+    int 21h
+    jmp S
+
+; --- Чтение из файла ---
+file_read:
+    mov ah, 01h
+    int 21h
+    mov [asd2], al         ; длина
+
+    mov ah, 01h
+    int 21h
+    mov [asd3], al         ; куда читать
+
+    mov ah, 3Dh
+    mov al, 0
+    mov dx, offset filename
+    int 21h
+    mov [handle], ax
+
+    mov ah, 3Fh
+    mov bx, [handle]
+    mov cl, [asd2]
+    mov ch, 0
+    mov dx, offset asd3
+    int 21h
+
+    mov ah, 3Eh
+    mov bx, [handle]
+    int 21h
+    jmp S
+
+; --- Открытие файла ---
+file_open:
+    mov ah, 01h
+    int 21h
+    mov [asd4], al
+
+    mov ah, 3Dh
+    mov al, 0
+    mov dx, offset asd4
+    int 21h
+    mov [handle], ax
     jmp S
 
 end S
