@@ -6,6 +6,7 @@
     a db '0'
     b db '0'
     x db '0'
+    el db '0'
 
 .code
 S:
@@ -27,7 +28,7 @@ S:
 
     jmp S
 
-; --- Сравнение bx и cx ---
+; --- Сравнение a и b ---
 compare:
     mov al, [a]
     mov bl, [b]
@@ -40,7 +41,7 @@ equal:
     mov [x], '1'
     jmp S
 
-; --- Графика ---
+; --- Графика (синий квадрат) ---
 video:
     mov ax, 0x0013
     int 0x10
@@ -80,8 +81,36 @@ input_b:
     jmp S
 
 show_result:
+    mov ah, 01h
+    int 21h
+    mov [el], al
+
+    cmp [el], 'x'
+    je  X
+
+    cmp [el], 'a'
+    je  A
+
+    cmp [el], 'b'
+    je  B
+
+    jmp S
+
+X:
     mov ah, 09h
     mov dx, offset x
+    int 21h
+    jmp S
+
+A:
+    mov ah, 09h
+    mov dx, offset a
+    int 21h
+    jmp S
+
+B:
+    mov ah, 09h
+    mov dx, offset b
     int 21h
     jmp S
 
